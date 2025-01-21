@@ -105,7 +105,7 @@ echo
 echo -e "\e[1mCreating configmaps and secrets in $NAMESPACE namespace ...\e[0m"
 
 function kbreplace() {
-  kubectl $@ -o yaml --dry-run | kubectl replace -f -
+  kubectl $@ -o yaml --dry-run=client | kubectl replace -f -
 }
 
 # Replace secrets created on helm install
@@ -128,7 +128,11 @@ kubectl -n $NAMESPACE label secret $PREFIX-provisioner-password $LABELS
 if [ "$AUTOCERT" == "true" ]; then
   CA_BUNDLE=$(cat $(step path)/certs/root_ca.crt | base64 | tr -d '\n')
   cat <<EOF | kubectl replace -f -
+{{- if semverCompare ">=1.16-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: admissionregistration.k8s.io/v1
+{{- else -}}
 apiVersion: admissionregistration.k8s.io/v1beta1
+{{- end }}
 kind: MutatingWebhookConfiguration
 metadata:
   name: $PREFIX-webhook-config
@@ -140,6 +144,10 @@ webhooks:
         namespace: $NAMESPACE
         path: "/mutate"
       caBundle: $CA_BUNDLE
+{{- if semverCompare ">=1.16-0" .Capabilities.KubeVersion.GitVersion }}
+    sideEffects: NoneOnDryRun
+    admissionReviewVersions: ["v1beta1"]
+{{- end }}
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]

@@ -65,3 +65,34 @@ Create CA DNS
 {{- printf "%s.%s.svc.cluster.local,127.0.0.1" (include "step-certificates.fullname" .) .Release.Namespace -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Linked CA variables
+*/}}
+{{- define "step-certificates.linkedca.secretKeyRef.name" -}}
+{{- if .Values.linkedca.secretKeyRef.name -}}
+{{- .Values.linkedca.secretKeyRef.name -}}
+{{- else -}}
+{{- printf "%s-step-ca-token" (include "step-certificates.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "step-certificates.linkedca.secretKeyRef.key" -}}
+{{- if .Values.linkedca.secretKeyRef.key -}}
+{{- .Values.linkedca.secretKeyRef.key -}}
+{{- else -}}
+token
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "step-certificates.serviceaccountname" -}}
+{{- if .Values.serviceaccount.create -}}
+    {{ default (include "step-certificates.fullname" .) .Values.serviceaccount.name }}
+{{- else -}}
+    {{ default "default" .Values.serviceaccount.name }}
+{{- end -}}
+{{- end -}}
+

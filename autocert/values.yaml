@@ -15,13 +15,18 @@ service:
   port: 443
   targetPort: 4443
 
+# Security Context for the pod
+podSecurityContext: {}
+  # fsGroup: 2000
+
 # autocert contains the configuration for autocert.
 autocert:
   # image contains the docker image for step-certificates.
   image:
-    repository: smallstep/autocert-controller
-    tag: 0.11.0
+    repository: cr.step.sm/smallstep/autocert-controller
     pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
   # label is the label used used to enable autocert in a namespace.
   # This value is rightnow hardcoded in autocert and it should not be changed.
   label: autocert.step.sm
@@ -41,25 +46,55 @@ autocert:
   tolerations: []
   # affinity contains the affinity settings for pod assignment.
   affinity: {}
+  # security context for container
+  securityContext:
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
 
 # bootstrapper contains the autocert-bootstrapper image and configuration.
 bootstrapper:
   image:
-    repository: smallstep/autocert-bootstrapper
-    tag: 0.11.0
+    repository: cr.step.sm/smallstep/autocert-bootstrapper
     pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
   resources: {requests: {cpu: 10m, memory: 20Mi}}
 
 # renewer contains the autocert-renewer image and configuration.
 renewer:
   image:
-    repository: smallstep/autocert-renewer
-    tag: 0.11.0
+    repository: cr.step.sm/smallstep/autocert-renewer
     pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
   resources: {requests: {cpu: 10m, memory: 20Mi}}
 
 # Enables autocert in the step-certificates subchart.
-# This configuration value should not be changed.
 step-certificates:
+  enabled: true
   autocert:
     enabled: true
+
+# These values allow configuration of an existing step-certificates deployment
+# with autocert.
+#
+# Future version of the autocert helm-chart will not install step-certificates
+# by default and it will require these values.
+ca:
+  # url is the step-certificates url to use.
+  url: ""
+  # provisioner is the provisioner name and the plaintext password that autocert
+  # will use.
+  provisioner:
+    name: ""
+    password: ""
+  # certs is the configmap in yaml that should contain the CA root certificate.
+  certs:
+    root_ca.crt: |-
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+  # config is the configmap in yaml to use. This is currently optional only.
+  config:
+    defaults.json: |-
+      {}
